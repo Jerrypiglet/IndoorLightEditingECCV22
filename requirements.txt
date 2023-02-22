@@ -1,0 +1,9 @@
+torch
+torchvision
+torchaudio
+open3d
+chardet
+opencv-python==3.4.10.35
+timm==0.4.5
+scikit-image
+h5py

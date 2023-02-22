@@ -1,4 +1,4 @@
-# Install script for directory: /home/zhl/ECCV22/OptixRendererShadow/src
+# Install script for directory: /home/ruizhu/Documents/Projects/IndoorLightEditingECCV22/OptixRendererShadow/src
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -37,10 +37,15 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
   set(CMAKE_CROSSCOMPILING "FALSE")
 endif()
 
+# Set default install directory permissions.
+if(NOT DEFINED CMAKE_OBJDUMP)
+  set(CMAKE_OBJDUMP "/home/ruizhu/miniconda3/envs/py38/bin/x86_64-conda-linux-gnu-objdump")
+endif()
+
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/zhl/ECCV22/OptixRendererShadow/src/optixRenderer/cmake_install.cmake")
-  include("/home/zhl/ECCV22/OptixRendererShadow/src/sutil/cmake_install.cmake")
+  include("/home/ruizhu/Documents/Projects/IndoorLightEditingECCV22/OptixRendererShadow/src/optixRenderer/cmake_install.cmake")
+  include("/home/ruizhu/Documents/Projects/IndoorLightEditingECCV22/OptixRendererShadow/src/sutil/cmake_install.cmake")
 
 endif()
 
@@ -52,5 +57,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/zhl/ECCV22/OptixRendererShadow/src/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/ruizhu/Documents/Projects/IndoorLightEditingECCV22/OptixRendererShadow/src/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

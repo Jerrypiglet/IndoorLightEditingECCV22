@@ -23,7 +23,8 @@ import renderShadowDepth
 import pickle
 import glob
 import cv2
-
+from utils_misc import *
+from pathlib import Path
 
 def renderVisWindowArr(
     visWinCenterPreds, visWinNormalPreds, visWinXAxisPreds, visWinYAxisPreds,
@@ -153,9 +154,9 @@ def renderInvLampArr(
 
 parser = argparse.ArgumentParser()
 # The directory of trained models
-parser.add_argument('--experimentDirecIndirec', default=None, help='the path to store samples and models' )
-parser.add_argument('--experimentShadow', default=None, help='the path to store samples and models')
-parser.add_argument('--experimentShgEnv', default=None, help='the path to store samples and models' )
+parser.add_argument('--experimentDirecIndirec', default='pretrained/check_directIndirect/', help='the path to store samples and models' )
+parser.add_argument('--experimentShadow', default='pretrained/check_shadowDepth_grad/', help='the path to store samples and models')
+parser.add_argument('--experimentShgEnv', default='pretrained/check_shadingToLight/', help='the path to store samples and models' )
 parser.add_argument('--testList', default=None, help='the path to store samples and models' )
 
 # The basic training setting
@@ -189,6 +190,14 @@ parser.add_argument('--renderWeight', type=float, default=1.0, help='the weight 
 parser.add_argument('--winSrcIntWeight', type=float, default=0.001, help='the loss for window light source' )
 parser.add_argument('--winSrcAxisWeight', type=float, default=1.0, help='the loss for window light source' )
 parser.add_argument('--winSrcLambWeight', type=float, default=0.001, help='the loss for window light source' )
+
+# switches
+parser.add_argument('--ifVisLamp', type=str2bool, nargs='?', const=True, default=False, help='whether to use visible lamp in rendering')
+parser.add_argument('--ifVisWin', type=str2bool, nargs='?', const=True, default=False, help='whether to use visible window in rendering')
+parser.add_argument('--ifInvisLamp', type=str2bool, nargs='?', const=True, default=False, help='whether to use invisible lamp in rendering')
+parser.add_argument('--ifInvisWin', type=str2bool, nargs='?', const=True, default=False, help='whether to use invisible window in rendering')
+parser.add_argument('--ifEnvMask', type=str2bool, nargs='?', const=True, default=True, help='whether to mask out pixels of outdoor inv (e.g. bright pixels from ndows)')
+parser.add_argument('--ifOnMask', type=str2bool, nargs='?', const=True, default=True, help='whether to mask out pixels of outdoor inv (e.g. bright pixels from ndows)')
 
 
 # Starting and ending point
@@ -300,6 +309,9 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
 
 
     lampMaskNames = glob.glob(osp.join(rawDir, 'lampMask_*.png') )
+    if not opt.ifVisLamp:
+        lampMaskNames = []
+        print(red('Turned off vis lamps'))
     if len(lampMaskNames ) > 1:
         lampMaskNames = sorted(lampMaskNames )
     visLampNum = len(lampMaskNames )
@@ -311,6 +323,9 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
         visLampMeshNames = None
 
     winMaskNames = glob.glob(osp.join(rawDir, 'winMask_*.png') )
+    if not opt.ifVisWin:
+        winMaskNames = []
+        print(red('Turned off vis windows'))
     if len(winMaskNames ) > 1:
         winMaskNames = sorted(winMaskNames )
     visWinNum = len(winMaskNames )
@@ -386,7 +401,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     roughDSName = osp.join(inputDir, 'roughDS.npy')
     roughDS = torch.from_numpy(np.load(roughDSName ) ).cuda()
 
-    if opt.objName is None:
+    if opt.objName¸ is None:
         depthName = osp.join(inputDir, 'depth.npy')
         depthBatch = torch.from_numpy(np.load(depthName ) ).cuda()
         depthDSName = osp.join(inputDir, 'depthDS.npy')
@@ -414,6 +429,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
 
     # Load visible lamps
     visLampCenterPreds, visLampSrcPreds = [], []
+    print(yellow('%d visible lamps'%visLampNum))
     for n in range(0, visLampNum ):
         lampName = lampMaskNames[n].replace(rawDir, inputDir )
         lampName = lampName.replace('Mask', 'Src').replace('.png', '.dat').replace('lamp', 'visLamp')
@@ -430,6 +446,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     visWinCenterPreds = []
     visWinNormalPreds, visWinXAxisPreds, visWinYAxisPreds = [], [], []
     visWinSrcPreds, visWinSrcSkyPreds, visWinSrcGrdPreds = [], [], []
+    print(yellow('%d visible windows'%visWinNum))
     for n in range(0, visWinNum ):
         winName = winMaskNames[n].replace(rawDir, inputDir )
         winName = winName.replace('Mask', 'Src').replace('.png', '.dat').replace('win', 'visWin')
@@ -458,6 +475,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     invLampName = osp.join(inputDir, 'invLampSrc.dat' )
     with open(invLampName, 'rb') as fIn:
         lampInfo = pickle.load(fIn )
+    print(yellow('Loaded invisible lamps from %s'%invLampName))
 
     invLampCenterPred = torch.from_numpy(lampInfo['center'] ).cuda()
     invLampAxesPred = torch.from_numpy(lampInfo['axes' ] ).cuda()
@@ -466,6 +484,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     invWinName = osp.join(inputDir, 'invWinSrc.dat' )
     with open(invWinName, 'rb') as fIn:
         winInfo = pickle.load(fIn )
+    print(yellow('Loaded invisible windows from %s'%invWinName))
 
     invWinXAxisPred = torch.from_numpy(winInfo['xAxis'] ).cuda()
     invWinYAxisPred = torch.from_numpy(winInfo['yAxis'] ).cuda()
@@ -477,6 +496,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     invWinSrcGrdPred = torch.from_numpy(winInfo['srcGrd'] ).cuda()
 
     if opt.objName is None:
+        print(yellow('no object to insert'))
         visWinShadowInits, visWinShadowPreds, \
             visLampShadowInits, visLampShadowPreds, \
             invWinShadowInit, invWinShadowPred, \
@@ -489,6 +509,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
                 invLampAxesPred, invLampCenterPred,
                 objName= objName, roomName = roomName, visLampMeshNames = visLampMeshNames )
     else:
+        print(white_blue('insert object %s'%opt.objName))
         visWinShadowInits, visWinShadowPreds, \
             visLampShadowInits, visLampShadowPreds, \
             invWinShadowInit, invWinShadowPred, \
@@ -552,12 +573,21 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
         visLampShadingPreds = torch.cat(visLampShadingPreds, dim=0 ).reshape(1, visLampNum, 3, height, width )
 
     shadingDirectPred = invWinShadingPred + invLampShadingPred
+    if not opt.ifInvisLamp:
+        shadingDirectPred = shadingDirectPred - invLampShadingPred
+        print(red('Turned off invisible lamp'))
+    if not opt.ifInvisWin:
+        shadingDirectPred = shadingDirectPred - invWinShadingPred
+        print(red('Turned off invisible window'))
+    if not opt.ifInvisWin and not opt.ifInvisLamp:
+        shadingDirectPred = torch.zeros_like(shadingDirectPred )
+        
     if len(visWinSrcPreds ) > 0:
         shadingDirectPred += torch.sum(visWinShadingPreds, dim=1 )
 
     if len(visLampSrcPreds ) > 0:
         shadingDirectPred += torch.sum(visLampShadingPreds, dim=1 )
-
+    
     shadingDirectPred = shadingDirectPred * envMaskBatch + (1 - envMaskBatch) * imBatch
     shadingDirectPred = shadingDirectPred * (1 - onMaskBatch) + onMaskBatch * imBatch
 
@@ -577,11 +607,14 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
 
     shadingPred = shadingIndirectPred + shadingDirectPred
 
-    shadingPred = shadingPred * envMaskBatch + (1 - envMaskBatch) * imBatch
-    shadingPred = shadingPred * (1 - onMaskBatch) + onMaskBatch * imBatch
+    if not opt.ifEnvMask:
+        shadingPred = shadingPred * envMaskBatch + (1 - envMaskBatch) * imBatch
+    if not opt.ifOnMask:
+        shadingPred = shadingPred * (1 - onMaskBatch) + onMaskBatch * imBatch
 
     renderedPred = shadingPred * albedoBatch
-    renderedPred = renderedPred * (1 - onMaskBatch ) + onMaskBatch * imBatch
+    if not opt.ifOnMask:
+        renderedPred = renderedPred * (1 - onMaskBatch ) + onMaskBatch * imBatch
     renderedPred = torch.clamp(renderedPred, 0, 1)
 
     # Predict per-pixel lighting

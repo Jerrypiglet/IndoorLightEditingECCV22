@@ -7,7 +7,7 @@ import argparse
 import DPT.runRealMonoDepth as runDepth
 import cv2
 import numpy as np
-
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 # The directory of trained models
@@ -37,6 +37,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     inputDir = osp.join(dataDir, 'input')
 
     imName = osp.join(inputDir, 'im.png')
+    assert osp.exists(imName ), imName
     im = cv2.imread(imName )
     height, width = im.shape[0:2]
 
@@ -46,6 +47,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     imNew = cv2.resize(im, (newWidth, newHeight ), interpolation = cv2.INTER_LINEAR )
 
     maskName = osp.join(inputDir, 'envMask.png' )
+    assert Path(maskName ).exists()
     envMask = cv2.imread(maskName )
     envMask = cv2.resize(envMask, (newWidth, newHeight ), interpolation = cv2.INTER_LINEAR )
 
@@ -78,5 +80,12 @@ for depthName in output_names:
 
     depth = cv2.resize(depth, (width, height), interpolation = cv2.INTER_LINEAR )
     np.save(depthNewName, depth )
+    print('>> Final resized depth saved to %s' % depthNewName)
+    
+    from utils import vis_disp_colormap
+    depth_normalized, depth_min_and_scale = vis_disp_colormap(depth, normalize=True)
+    cv2.imwrite(str(depthNewName).replace('.npy', '.png'), depth_normalized)
+    print('>> Final resized depth (vis) saved to %s' % str(depthNewName).replace('.npy', '.png'))
+
 
     os.system('rm %s' % osp.join(depthName.replace('depth', '*').replace('.npy', '.*') ) )

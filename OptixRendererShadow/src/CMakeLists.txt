@@ -128,7 +128,7 @@ if(USING_CLANG_C)
   set(CUDA_HOST_COMPILER "clang" CACHE FILEPATH "Host side compiler used by NVCC")
 endif()
 
-find_package(CUDA 7.0 REQUIRED)
+find_package(CUDA 11.0 REQUIRED)
 
 # Optional: When IL_FOUND is false after this call, the OptiX introduction samples optixIntro_07 and higher will not be built.
 find_package(DevIL)

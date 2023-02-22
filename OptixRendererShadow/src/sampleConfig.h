@@ -26,5 +26,5 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define SAMPLES_DIR "/home/zhl/ECCV22/OptixRendererShadow/src"
-#define SAMPLES_PTX_DIR "/home/zhl/ECCV22/OptixRendererShadow/src/lib/ptx"
+#define SAMPLES_DIR "/home/ruizhu/Documents/Projects/IndoorLightEditingECCV22/OptixRendererShadow/src"
+#define SAMPLES_PTX_DIR "/home/ruizhu/Documents/Projects/IndoorLightEditingECCV22/OptixRendererShadow/src/lib/ptx"

@@ -1,0 +1,14 @@
+{
+    "include": [
+      "data", 
+      "**", 
+    ],
+    
+    "exclude": [
+        "**/.git", 
+        "**/.DS_Store", 
+        // "**/OptixRendererShadow/**", 
+        "**/DPT/**", 
+        "**/Images/**", 
+],
+}

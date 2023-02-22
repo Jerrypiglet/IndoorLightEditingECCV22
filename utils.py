@@ -5,6 +5,7 @@ import cv2
 import os.path as osp
 import torch
 import scipy.ndimage as ndimage
+import matplotlib.pyplot as plt
 
 def srgb2rgb(srgb ):
     ret = np.zeros_like(srgb )
@@ -275,6 +276,7 @@ def writeWindowBatch(centers, ys, xs, ons, srcNum, fileName ):
                         fOut.write('v %.4f %.4f %.4f\n' % (v[0], v[1], v[2] ) )
                     for f in faceArr:
                         fOut.write('f %d %d %d\n' % (f[0], f[1], f[2] ) )
+                        
     return
 
 def writeLampList(centers, depths, normals, masks, srcNum, fileName,
@@ -469,3 +471,33 @@ def writeWindowList(centers, ys, xs, srcNum, fileName ):
                 for f in faceArr:
                     fOut.write('f %d %d %d\n' % (f[0], f[1], f[2]) )
     return
+
+def vis_disp_colormap(disp_array_, file=None, normalize=True, min_and_scale=None, valid_mask=None, cmap_name='jet'):
+    disp_array = disp_array_.copy()
+    cm = plt.get_cmap(cmap_name) # the larger the hotter
+    if valid_mask is not None:
+        assert valid_mask.shape==disp_array.shape
+        assert valid_mask.dtype==bool
+    else:
+        valid_mask = np.ones_like(disp_array).astype(bool)
+    
+    if normalize:
+        if min_and_scale is None:
+            depth_min = np.amin(disp_array[valid_mask])
+            disp_array -= depth_min
+            depth_scale = 1./(1e-6+np.amax(disp_array[valid_mask]))
+            disp_array = disp_array * depth_scale
+            min_and_scale = [depth_min, depth_scale]
+        else:
+            disp_array -= min_and_scale[0]
+            disp_array = disp_array * min_and_scale[1]
+
+    disp_array = np.clip(disp_array, 0., 1.)
+    disp_array = (cm(disp_array)[:, :, :3] * 255).astype(np.uint8)
+    
+    if file is not None:
+        from PIL import Image, ImageFont, ImageDraw
+        disp_Image = Image.fromarray(disp_array)
+        disp_Image.save(file)
+    else:
+        return disp_array, min_and_scale

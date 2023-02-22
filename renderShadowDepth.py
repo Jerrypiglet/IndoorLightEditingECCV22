@@ -85,6 +85,7 @@ class renderShadow():
                     visWinXAxisPreds,
                     self.maxWinNum,
                     osp.join(self.outputRoot, 'visWinPred.obj' ) )
+            print('--> Write vis window list to %s' % osp.join(self.outputRoot, 'visWinPred.obj' ) )
 
         if self.maxLampNum  > 0:
             if visLampMeshNames is None:
@@ -95,6 +96,7 @@ class renderShadow():
                         onLampMasksBatch,
                         self.maxLampNum,
                         osp.join(self.outputRoot, 'visLampPred.ply' ) )
+                print('--> Write vis lamp list to %s' % osp.join(self.outputRoot, 'visLampPred.ply' ))
 
         utils.writeWindowBatch(
                 invWinCenterPred.unsqueeze(1),
@@ -103,6 +105,7 @@ class renderShadow():
                 np.ones( (batchSize, 1 ) ),
                 1,
                 osp.join(self.outputRoot, 'invWinPred.obj' ) )
+        print('--> Write inv window batch to %s' % osp.join(self.outputRoot, 'invWinPred.obj' ))
 
         utils.writeLampBatch(
                 invLampAxesPred.unsqueeze(1),
@@ -110,6 +113,7 @@ class renderShadow():
                 np.ones( (batchSize, 1 ) ),
                 1,
                 osp.join(self.outputRoot, 'invLampPred.ply' ) )
+        print('--> Write inv lamp batch to %s' % osp.join(self.outputRoot, 'invLampPred.ply' ))
 
 
         # Compute shadows for visible windows

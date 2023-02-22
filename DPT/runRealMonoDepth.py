@@ -2,6 +2,8 @@
 """
 import os
 import glob
+
+from pathlib import Path
 import torch
 import cv2
 import argparse
@@ -31,9 +33,9 @@ def run(input_names, output_names, mask_names,
     print("initialize")
 
     if model_type == 'dpt_hybrid':
-        model_path = osp.join(curDir, 'weights', 'dpt_hybrid.pt' )
+        model_path = osp.join(curDir, 'weights', 'dpt_hybrid-midas-501f0c75.pt' )
     elif model_type == 'dpt_large':
-        model_path = osp.join(curDir, 'weights', 'dpt_large.pt' )
+        model_path = osp.join(curDir, 'weights', 'dpt_large-midas-2f21e586.pt' )
 
     # select device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -135,5 +137,7 @@ def run(input_names, output_names, mask_names,
         prediction = prediction * (1 - mask ) + mask * (1.420 + 3.869 )
 
         np.save(output_name, prediction )
+        print('output saved to %s' % output_name)
+        assert Path(output_name).exists()
 
         print("finished")

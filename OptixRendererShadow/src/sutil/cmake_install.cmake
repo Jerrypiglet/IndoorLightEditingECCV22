@@ -1,4 +1,4 @@
-# Install script for directory: /home/zhl/ECCV22/OptixRendererShadow/src/sutil
+# Install script for directory: /home/ruizhu/Documents/Projects/IndoorLightEditingECCV22/OptixRendererShadow/src/sutil
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -35,5 +35,10 @@ endif()
 # Is this installation the result of a crosscompile?
 if(NOT DEFINED CMAKE_CROSSCOMPILING)
   set(CMAKE_CROSSCOMPILING "FALSE")
+endif()
+
+# Set default install directory permissions.
+if(NOT DEFINED CMAKE_OBJDUMP)
+  set(CMAKE_OBJDUMP "/home/ruizhu/miniconda3/envs/py38/bin/x86_64-conda-linux-gnu-objdump")
 endif()
 

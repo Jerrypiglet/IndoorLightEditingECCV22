@@ -23,7 +23,8 @@ import renderShadowDepth
 import pickle
 import glob
 import cv2
-
+from utils_misc import *
+from pathlib import Path
 
 def renderVisWindowArr(
     visWinCenterPreds, visWinNormalPreds, visWinXAxisPreds, visWinYAxisPreds,
@@ -534,13 +535,13 @@ def optimizeLightSources(
 
 parser = argparse.ArgumentParser()
 # The directory of trained models
-parser.add_argument('--experimentBRDF', default=None, help='the path to store samples and models' )
-parser.add_argument('--experimentVisLamp', default=None, help='the path to store samples and models' )
-parser.add_argument('--experimentInvLamp', default=None, help='the path to store samples and models' )
-parser.add_argument('--experimentVisWindow', default=None, help='the path to store samples and models' )
-parser.add_argument('--experimentInvWindow', default=None, help='the path to store samples and models' )
-parser.add_argument('--experimentDirecIndirec', default=None, help='the path to store samples and models' )
-parser.add_argument('--experimentShadow', default=None, help='the path to store samples and models')
+parser.add_argument('--experimentBRDF', default='pretrained/check_brdf_w320_h240', help='the path to store samples and models' )
+parser.add_argument('--experimentVisLamp', default='pretrained/check_visLamp_bn3_shg1.000_geo1.000_ren1.000', help='the path to store samples and models' )
+parser.add_argument('--experimentInvLamp', default='pretrained/check_invLamp_bn3_shg1.000_geo1.000_size0.200_ren1.000/', help='the path to store samples and models' )
+parser.add_argument('--experimentVisWindow', default='pretrained/check_visWindow_bn3_shg1.000_geo1.000_size0.200_ren1.000_srcInt0.001_srcAxis1.000_srcLamb0.001/', help='the path to store samples and models' )
+parser.add_argument('--experimentInvWindow', default='pretrained/check_invWindow_bn3_shg1.000_geo1.000_size0.200_ren1.000_srcInt0.001_srcAxis1.000_arcLamb0.001/', help='the path to store samples and models' )
+parser.add_argument('--experimentDirecIndirec', default='pretrained/check_directIndirect/', help='the path to store samples and models' )
+parser.add_argument('--experimentShadow', default='pretrained/check_shadowDepth_grad/', help='the path to store samples and models')
 parser.add_argument('--testList', default=None, help='the path to store samples and models' )
 
 # The basic training setting
@@ -573,7 +574,7 @@ parser.add_argument('--winSrcLambWeight', type=float, default=0.001, help='the l
 
 # Starting and ending point
 parser.add_argument('--rs', type=int, default=0, help='starting point' )
-parser.add_argument('--re', type=int, default=1, help='ending point' )
+parser.add_argument('--re', type=int, default=100, help='ending point' )
 
 
 # The detail network setting
@@ -678,7 +679,8 @@ renderVisLamp = renderVisLamp.renderDirecLighting()
 renderInvLamp = renderInvLamp.renderDirecLighting()
 renderShadow = renderShadowDepth.renderShadow(
     modelRoot = opt.experimentShadow, iterId = opt.iterIdShadow,
-    winSampleNum = 1024, lampSampleNum = 1024
+    winSampleNum = 1024, lampSampleNum = 1024, 
+    outputRoot='outputs'
 )
 
 # Network for direct-indirect lighting predictio
@@ -736,6 +738,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     if len(winMaskNames ) > 1:
         winMaskNames = sorted(winMaskNames )
 
+    assert Path(imName ).exists(), 'Image not found: %s' % imName
     im = cv2.imread(imName )[:, :, ::-1 ]
     originHeight, originWidth = im.shape[0:2 ]
     width = opt.imWidth
@@ -761,7 +764,11 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
         envMaskSmall = envMaskSmall[:, :, 0]
 
     lampMasks, lampMaskSmalls = [], []
-    for lampMaskName in lampMaskNames:
+    if len(lampMaskNames ) == 0:
+        print(yellow('No lamp mask found'))
+    else:
+        print(white_blue('%d lamp masks found' % len(lampMaskNames)))
+    for _, lampMaskName in enumerate(lampMaskNames):
         lampMask = cv2.imread(lampMaskName )
         if width != originWidth:
             lampMask = cv2.resize(lampMask, (width, height), interpolation = cv2.INTER_AREA )
@@ -771,9 +778,14 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
             lampMaskSmall = lampMaskSmall[:, :, 0]
         lampMasks.append(lampMask )
         lampMaskSmalls.append(lampMaskSmall )
+        print(_, white_blue('lampMaskName: %s' % lampMaskName))
 
     winMasks, winMaskSmalls = [], []
-    for winMaskName in winMaskNames:
+    if len(winMaskNames ) == 0:
+        print(yellow('No window mask found'))
+    else:
+        print(white_blue('%d window masks found' % len(winMaskNames)))
+    for _, winMaskName in enumerate(winMaskNames):
         winMask = cv2.imread(winMaskName )
         if width != originWidth:
             winMask = cv2.resize(winMask, (width, height), interpolation = cv2.INTER_AREA )
@@ -873,6 +885,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
         envMaskSmallBatch,
         osp.join(outputDir, 'room.ply')
     )
+    print('--> Saved room.ply to %s' % outputDir)
 
     # Output light source predictions
     timestart.record()
@@ -906,6 +919,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
                 visLampNum,
                 osp.join(outputDir, 'visLampPred.ply' )
         )
+        print('--> Saved visLampPred.ply to %s' % outputDir)
 
 
     timestart.record()
@@ -948,6 +962,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
             visWinNum,
             osp.join(outputDir, 'visWinPred.obj')
         )
+        print('--> Saved visWinPred.obj to %s' % outputDir)
 
     timestart.record()
     invLampAxesPred, invLampCenterPred, invLampSrcPred \
@@ -969,6 +984,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
             1,
             osp.join(outputDir, 'invLampPred.ply' )
     )
+    print('--> Saved invLampPred.ply to %s' % outputDir)
 
     timestart.record()
     invWinCenterPred, invWinNormalPred, \
@@ -992,6 +1008,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
             1,
             osp.join(outputDir, 'invWinPred.obj')
     )
+    print('--> Saved invWinPred.obj to %s' % outputDir)
 
     renderShadow.setWinNum(visWinNum )
     renderShadow.setLampNum(visLampNum )
