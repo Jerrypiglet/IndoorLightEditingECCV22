@@ -423,6 +423,8 @@ def writeLampList(centers, depths, normals, masks, srcNum, fileName,
                 faces.append(np.array([0, 1, 2], dtype=np.int32 ) + vNum )
                 faces.append(np.array([0, 2, 3], dtype=np.int32 ) + vNum )
 
+            if vertices == []:
+                continue
             vertices = np.stack(vertices, axis=0 )
             faces = np.stack(faces, axis=0 )
 

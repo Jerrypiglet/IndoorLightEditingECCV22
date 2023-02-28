@@ -401,7 +401,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     roughDSName = osp.join(inputDir, 'roughDS.npy')
     roughDS = torch.from_numpy(np.load(roughDSName ) ).cuda()
 
-    if opt.objName¸ is None:
+    if opt.objName is None:
         depthName = osp.join(inputDir, 'depth.npy')
         depthBatch = torch.from_numpy(np.load(depthName ) ).cuda()
         depthDSName = osp.join(inputDir, 'depthDS.npy')
@@ -588,8 +588,10 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     if len(visLampSrcPreds ) > 0:
         shadingDirectPred += torch.sum(visLampShadingPreds, dim=1 )
     
-    shadingDirectPred = shadingDirectPred * envMaskBatch + (1 - envMaskBatch) * imBatch
-    shadingDirectPred = shadingDirectPred * (1 - onMaskBatch) + onMaskBatch * imBatch
+    if not opt.ifEnvMask:
+        shadingDirectPred = shadingDirectPred * envMaskBatch + (1 - envMaskBatch) * imBatch
+    if not opt.ifOnMask:
+        shadingDirectPred = shadingDirectPred * (1 - onMaskBatch) + onMaskBatch * imBatch
 
     shadingDirectPredInput = torch.atan(shadingDirectPred ) / np.pi * 2.0
     shadingDirectPredInput = F.adaptive_avg_pool2d(shadingDirectPredInput, (sHeight, sWidth ) )
