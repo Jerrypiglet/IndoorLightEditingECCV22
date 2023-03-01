@@ -574,7 +574,7 @@ parser.add_argument('--winSrcLambWeight', type=float, default=0.001, help='the l
 
 # Starting and ending point
 parser.add_argument('--rs', type=int, default=0, help='starting point' )
-parser.add_argument('--re', type=int, default=300, help='ending point' )
+parser.add_argument('--re', type=int, default=1, help='ending point' )
 
 
 # The detail network setting
@@ -879,11 +879,15 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     print('BRDF time: %.3f ms' % timestart.elapsed_time(timestop ) )
 
     # Save geometry
+    # if (Path(inputDir) / 'fov_x.npy').exists():
+    assert (Path(inputDir) / 'fov_x.npy').exists(), 'fov_x.npy does not exist: %s'%(Path(inputDir) / 'fov_x.npy')
+    fov_x = np.load(Path(inputDir) / 'fov_x.npy')
     utils.writeDepthAsPointClouds(
         depthSmallBatch,
         normalDS,
         envMaskSmallBatch,
-        osp.join(outputDir, 'room.ply')
+        osp.join(outputDir, 'room.ply'), 
+        fov = fov_x,
     )
     print('--> Saved room.ply to %s' % outputDir)
 

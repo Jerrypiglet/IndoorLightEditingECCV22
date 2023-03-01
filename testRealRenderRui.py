@@ -181,6 +181,7 @@ parser.add_argument('--iterIdShgEnv', type=int, default=240000, help='the iterat
 parser.add_argument('--isOptimize', action='store_true', help='use optimization for light sources or not' )
 parser.add_argument('--isPerpixelLighting', action='store_true', help='whether to output per-pixel lighting or not')
 parser.add_argument('--isVisLampMesh', action='store_true', help='whether to directly load light source mesh')
+# parser.add_argument('--isVisLampMesh', action='store_true', help='whether to directly load light source mesh')
 
 # The training weight
 parser.add_argument('--shadingWeight', type=float, default=1.0, help='the weight for shading error' )
@@ -197,10 +198,10 @@ parser.add_argument('--ifVisWin', type=str2bool, nargs='?', const=True, default=
 parser.add_argument('--ifInvisLamp', type=str2bool, nargs='?', const=True, default=True, help='whether to use invisible lamp in rendering')
 parser.add_argument('--ifInvisWin', type=str2bool, nargs='?', const=True, default=True, help='whether to use invisible window in rendering')
 
-parser.add_argument('--ifEnvMask', type=str2bool, nargs='?', const=True, default=True, help='whether to mask out pixels of outdoor inv (e.g. bright pixels from ndows)')
-parser.add_argument('--ifOnMask', type=str2bool, nargs='?', const=True, default=True, help='whether to mask out pixels of outdoor inv (e.g. bright pixels from ndows)')
+parser.add_argument('--ifEnvMask', type=str2bool, nargs='?', const=True, default=False, help='whether to mask out pixels of outdoor inv (e.g. bright pixels from ndows)')
+parser.add_argument('--ifOnMask', type=str2bool, nargs='?', const=True, default=False, help='whether to mask out pixels of outdoor inv (e.g. bright pixels from ndows)')
 
-parser.add_argument('--ifRerender', type=str2bool, nargs='?', const=True, default=True, help='')
+parser.add_argument('--ifRerender', type=str2bool, nargs='?', const=True, default=False, help='')
 
 # Starting and ending point
 parser.add_argument('--rs', type=int, default=0, help='starting point' )
@@ -287,11 +288,35 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
 
     roomName = osp.join(dataDir, 'room.obj')
 
-    rawDir = osp.join(dataDir, 'input')
     if opt.ifRerender:
-        BRDF_name = 'BRDFLight'; Render_name = 'Rerendering'
+        BRDF_name = 'BRDFLight'; Render_name = 'Rerendering'; Input_name = 'input'; 
     else:
-        BRDF_name = 'EditedBRDFLight'; Render_name = 'EditedRerendering'
+        BRDF_name = 'EditedBRDFLight'; Render_name = 'EditedRerendering'; Input_name = 'EditedInput'; 
+        
+    rawDir = osp.join(dataDir, Input_name)
+    from pathlib import Path
+    light_edit_txt_path = Path(rawDir) / ('light_%d_params.txt'%0)
+    
+    assert light_edit_txt_path.exists(), 'light_edit_txt_path does not exist: %s'%str(light_edit_txt_path)
+    with open(light_edit_txt_path, 'r') as f:
+        for l in f.readlines():
+            l = l.strip()
+            if l.startswith('--ifInvisLamp'):
+                opt.ifInvisLamp =  l.split(' ')[-1].lower() == 'true'
+                print(magenta('Setting opt.ifInvisLamp ->: %s'%str(opt.ifInvisLamp) ) )
+            if l.startswith('--ifVisLamp'):
+                opt.ifVisLamp =  l.split(' ')[-1].lower() == 'true'
+                print(magenta('Setting opt.ifVisLamp ->: %s'%str(opt.ifVisLamp) ) )
+            if l.startswith('--ifInvisWin'):
+                opt.ifInvisWin =  l.split(' ')[-1].lower() == 'true'
+                print(magenta('Setting opt.ifInvisWin ->: %s'%str(opt.ifInvisWin) ) )
+            if l.startswith('--ifVisWin'):
+                opt.ifVisWin =  l.split(' ')[-1].lower() == 'true'
+                print(magenta('Setting opt.ifVisWin ->: %s'%str(opt.ifVisWin) ) )
+            if l.startswith('--isVisLampMesh'):
+                opt.isVisLampMesh = True
+                print(magenta('Setting opt.isVisLampMesh ->: %s'%str(opt.isVisLampMesh) ) )
+        
     inputDir = osp.join(dataDir, BRDF_name)
     inputDir += '_size%.3f_int%.3f_dir%.3f_lam%.3f_ren%.3f' \
         % (opt.sizeWeight, opt.winSrcIntWeight, opt.winSrcAxisWeight, opt.winSrcLambWeight,
@@ -301,6 +326,9 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     if opt.isOptimize:
         inputDir += '_optimize'
     outputDir = inputDir.replace(BRDF_name, Render_name)
+    if Path(outputDir).exists():
+        import shutil
+        shutil.rmtree(str(outputDir))
 
     if not osp.isdir(outputDir ):
         os.system('mkdir %s' % outputDir )
@@ -321,12 +349,14 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     if len(lampMaskNames ) > 1:
         lampMaskNames = sorted(lampMaskNames )
     visLampNum = len(lampMaskNames )
-    if opt.isVisLampMesh:
-        visLampMeshNames = []
-        for n in range(0, visLampNum ):
-            visLampMeshNames.append(osp.join(rawDir, 'visLamp_%d.obj' % n ) )
-        assert visLampNum > 0, 'No vis lamp mesh found at %s'%rawDir
+    # if opt.isVisLampMesh:
+    visLampMeshNames = []
+    for n in range(0, visLampNum ):
+        visLampMeshNames.append(osp.join(rawDir, 'visLamp_%d.obj' % n ) )
+    if all([Path(x).exists() for x in visLampMeshNames]):
+        # assert visLampNum > 0, 'No vis lamp mesh found at %s'%rawDir
         print(green('Inserted %d lamps' % visLampNum))
+        opt.isVisLampMesh = True
     else:
         visLampMeshNames = None
 
@@ -436,7 +466,7 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     onMaskBatch = torch.from_numpy(np.load(onMaskName ) ).cuda()
     onMaskSmallName = osp.join(inputDir, 'onMaskSmall.npy')
     onMaskSmallBatch = torch.from_numpy(np.load(onMaskSmallName ) ).cuda()
-
+    
     # Load visible lamps
     visLampCenterPreds, visLampSrcPreds = [], []
     print(yellow('%d visible lamps'%visLampNum))
@@ -496,6 +526,8 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     with open(invLampName, 'rb') as fIn:
         lampInfo = pickle.load(fIn )
     print(yellow('Loaded invisible lamps from %s'%invLampName))
+    for k, v in lampInfo.items():
+        print(k, v)
 
     invLampCenterPred = torch.from_numpy(lampInfo['center'] ).cuda()
     invLampAxesPred = torch.from_numpy(lampInfo['axes' ] ).cuda()
@@ -610,20 +642,42 @@ for dataId in range(max(opt.rs, 0), min(opt.re, len(dirList ) ) ):
     if len(visWinSrcPreds ) > 0:
         visWinShadingNoPreds = torch.cat(visWinShadingNoPreds, dim=0 ).reshape(1, visWinNum, 3, height, width )
         visWinShadingPreds = torch.cat(visWinShadingPreds, dim=0 ).reshape(1, visWinNum, 3, height, width )
+        visWinShadingPreds[torch.isnan(visWinShadingPreds)] = 0
 
     if len(visLampSrcPreds ) > 0:
         visLampShadingNoPreds = torch.cat(visLampShadingNoPreds, dim=0 ).reshape(1, visLampNum, 3, height, width )
         visLampShadingPreds = torch.cat(visLampShadingPreds, dim=0 ).reshape(1, visLampNum, 3, height, width )
+        visLampShadingPreds[torch.isnan(visLampShadingPreds)] = 0
 
+
+    invWinShadingPred[torch.isnan(invWinShadingPred)] = 0
     shadingDirectPred = invWinShadingPred + invLampShadingPred
+    
+    # import matplotlib.pyplot as plt
+    # plt.figure()
+    # plt.subplot(321)
+    # plt.imshow(envMaskBatch.squeeze().detach().cpu().numpy())
+    # plt.subplot(322)
+    # plt.imshow(onMaskBatch.squeeze().detach().cpu().numpy())
+    # plt.subplot(323)
+    # plt.imshow(invWinShadingPred.squeeze().detach().cpu().numpy().transpose(1, 2, 0))
+    # plt.colorbar()
+    # plt.subplot(324)
+    # plt.imshow(invLampShadingPred.squeeze().detach().cpu().numpy().transpose(1, 2, 0))
+    # plt.colorbar()
+    # plt.subplot(325)
+    # plt.imshow(shadingDirectPred.squeeze().detach().cpu().numpy().transpose(1, 2, 0))
+    # plt.colorbar()
+    # plt.show()
+    
     # if not opt.ifInvisLamp:
     #     shadingDirectPred = shadingDirectPred - invLampShadingPred
     #     print(red('Turned off invisible lamp'))
     # if not opt.ifInvisWin:
     #     shadingDirectPred = shadingDirectPred - invWinShadingPred
     #     print(red('Turned off invisible window'))
-    if not opt.ifInvisWin and not opt.ifInvisLamp:
-        shadingDirectPred = torch.zeros_like(shadingDirectPred )
+    # if not opt.ifInvisWin and not opt.ifInvisLamp:
+    #     shadingDirectPred = torch.zeros_like(shadingDirectPred )
         
     if len(visWinSrcPreds ) > 0:
         shadingDirectPred += torch.sum(visWinShadingPreds, dim=1 )

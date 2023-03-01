@@ -123,7 +123,9 @@ def run(input_names, output_names, mask_names,
         mask = cv2.imread(mask_name )
         if len(mask.shape ) == 3:
             mask = mask[:, :, 0]
-        mask = (1 - mask.astype(np.float32 ) / 255.0 )
+        mask = (1 - mask.astype(np.float32 ) / 255.0 ) # invalid mask
+        
+        prediction_tmp = prediction.copy()
 
         predictionMin = (prediction + mask * 1e6).min()
         predictionMax = (prediction - mask * 1e6).max()
@@ -135,9 +137,13 @@ def run(input_names, output_names, mask_names,
 
         prediction = 1 / (scale * prediction + offset)
         prediction = prediction * (1 - mask ) + mask * (1.420 + 3.869 )
+        
+        print(np.amax(prediction), np.amin(prediction) )
 
         np.save(output_name, prediction )
         print('output saved to %s' % output_name)
         assert Path(output_name).exists()
 
         print("finished")
+
+        # import ipdb; ipdb.set_trace()
